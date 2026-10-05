@@ -1255,7 +1255,7 @@ window.claude = (function(){
   function renderChips(){
     const all = ['전체', ...allSections(), MASTERED];
     chipsEl.innerHTML = all.map(s =>
-      `<button class="chip ${s===MASTERED?'mastered-chip':''} ${s===activeSection?'active':''}" data-s="${esc(s)}">${s===MASTERED?'✓ ':''}${esc(s)}${s===MASTERED?` ${questions.filter(q=>q.mastered).length}`:''}</button>`
+      `<button class="chip ${s===MASTERED?'mastered-chip':''} ${s===activeSection?'active':''}" data-s="${esc(s)}">${esc(s)}${s===MASTERED?` ${questions.filter(q=>q.mastered).length}`:''}</button>`
     ).join('');
     chipsEl.querySelectorAll('.chip').forEach(el=>{
       el.addEventListener('click', ()=>{
@@ -1357,13 +1357,13 @@ window.claude = (function(){
         <span class="num">#${String(q.order).padStart(3,'0')}</span>
         <span class="badge">${esc(q.subject||'미분류')}</span>
         <span class="section-tag">${esc(q.section||'')}</span>
-        ${q.mastered ? `<span class="mastered-tag">✓ 숙달</span>` : ``}
+        ${q.mastered ? `<span class="mastered-tag">숙달</span>` : ``}
         <span class="spacer"></span>
         ${canEdit ? `
           <div class="card-actions">
             ${q.mastered
-              ? `<button class="btn small unmaster" data-act="unmaster">↩ 숙달 취소</button>`
-              : `<button class="btn small master" data-act="master">✓ 숙달 완료</button>`}
+              ? `<button class="btn small unmaster" data-act="unmaster">숙달 취소</button>`
+              : `<button class="btn small master" data-act="master">숙달 완료</button>`}
             <button class="btn small" data-act="edit">수정</button>
             <button class="btn small danger" data-act="del">삭제</button>
           </div>` : ``}
