@@ -162,6 +162,16 @@
   .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
   .btn.primary:hover{filter:brightness(1.08)}
   .btn.danger{background:transparent;color:#b1483f;border-color:rgba(177,72,63,.4)}
+  .btn.master{background:#2f9e5b;color:#fff;border-color:transparent}
+  .btn.master:hover{filter:brightness(1.08)}
+  .btn.unmaster{background:transparent;color:var(--good);border-color:var(--good)}
+  .chip.mastered-chip{border-color:var(--good);color:var(--good)}
+  .chip.mastered-chip.active{background:#2f9e5b;color:#fff;border-color:transparent}
+  .mastered-tag{font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;background:var(--good-soft);color:var(--good)}
+  .rand-cats{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+  .rand-cats .chip{font-size:11.5px;padding:5px 10px}
+  .rand-cats-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;font-weight:800;color:var(--muted)}
+  .rand-cats-head button{background:none;border:none;color:var(--accent);font-size:11.5px;font-weight:700;cursor:pointer;text-decoration:underline;padding:0;font-family:inherit}
   .btn.ghost{background:transparent}
   .btn.small{padding:6px 10px;font-size:12px;border-radius:9px}
   .btn:disabled{opacity:.45;cursor:default}
@@ -851,6 +861,8 @@
       <h3>랜덤 질문</h3>
       <button class="btn small ghost" id="rand-close-btn">닫기</button>
     </div>
+    <div class="rand-cats-head"><span>출제할 분류 (여러 개 선택 가능)</span><span><button type="button" id="rand-all-btn">전체 선택</button> · <button type="button" id="rand-none-btn">선택 해제</button></span></div>
+    <div class="rand-cats" id="rand-cats"></div>
     <p class="modal-sub" id="rand-scope-note">무작위로 한 문항을 뽑았어요.</p>
     <div id="rand-body"></div>
     <div class="rand-actions">
@@ -1141,6 +1153,11 @@ window.claude = (function(){
   const randOverlay = document.getElementById('rand-overlay');
   const randCloseBtn = document.getElementById('rand-close-btn');
   const randScopeNote = document.getElementById('rand-scope-note');
+  const randCatsEl = document.getElementById('rand-cats');
+  const randAllBtn = document.getElementById('rand-all-btn');
+  const randNoneBtn = document.getElementById('rand-none-btn');
+  const MASTERED = '숙달 완료';
+  let randSel = new Set();   // 랜덤 질문 출제 분류 (복수 선택)
   const randBodyEl = document.getElementById('rand-body');
   const randRevealBtn = document.getElementById('rand-reveal-btn');
   const randAgainBtn = document.getElementById('rand-again-btn');
@@ -1236,9 +1253,9 @@ window.claude = (function(){
   }
 
   function renderChips(){
-    const all = ['전체', ...allSections()];
+    const all = ['전체', ...allSections(), MASTERED];
     chipsEl.innerHTML = all.map(s =>
-      `<button class="chip ${s===activeSection?'active':''}" data-s="${esc(s)}">${esc(s)}</button>`
+      `<button class="chip ${s===MASTERED?'mastered-chip':''} ${s===activeSection?'active':''}" data-s="${esc(s)}">${s===MASTERED?'✓ ':''}${esc(s)}${s===MASTERED?` ${questions.filter(q=>q.mastered).length}`:''}</button>`
     ).join('');
     chipsEl.querySelectorAll('.chip').forEach(el=>{
       el.addEventListener('click', ()=>{
@@ -1249,9 +1266,23 @@ window.claude = (function(){
     });
   }
 
+  function matchSearch(list){
+    const t = searchTerm.trim().toLowerCase();
+    if (!t) return list;
+    return list.filter(q =>
+      (q.question||'').toLowerCase().includes(t) ||
+      (q.answer||'').toLowerCase().includes(t) ||
+      (q.subject||'').toLowerCase().includes(t)
+    );
+  }
+  function inCategory(q, cat){
+    if (cat === MASTERED) return !!q.mastered;
+    if (q.mastered) return false;
+    return cat === '전체' || q.section === cat;
+  }
   function filtered(){
     let list = questions.slice();
-    if (activeSection !== '전체') list = list.filter(q => q.section === activeSection);
+    list = list.filter(q => inCategory(q, activeSection));
     const t = searchTerm.trim().toLowerCase();
     if (t) list = list.filter(q =>
       (q.question||'').toLowerCase().includes(t) ||
@@ -1261,8 +1292,27 @@ window.claude = (function(){
     return list;
   }
 
+  function randPool(){
+    const cats = randSel.size ? [...randSel] : ['전체'];
+    return matchSearch(questions.filter(q => cats.some(c => inCategory(q, c))));
+  }
+  function renderRandCats(){
+    const cats = [...allSections(), MASTERED];
+    randCatsEl.innerHTML = cats.map(c => {
+      const n = questions.filter(q => inCategory(q, c)).length;
+      return `<button type="button" class="chip ${c===MASTERED?'mastered-chip':''} ${randSel.has(c)?'active':''}" data-c="${esc(c)}">${esc(c)} ${n}</button>`;
+    }).join('');
+  }
+  randCatsEl.addEventListener('click', e=>{
+    const b = e.target.closest('[data-c]'); if (!b) return;
+    const c = b.dataset.c;
+    if (randSel.has(c)) randSel.delete(c); else randSel.add(c);
+    renderRandCats(); pickRandom();
+  });
+  randAllBtn.addEventListener('click', ()=>{ randSel = new Set(allSections()); renderRandCats(); pickRandom(); });
+  randNoneBtn.addEventListener('click', ()=>{ randSel = new Set(); renderRandCats(); pickRandom(); });
   function pickRandom(){
-    const pool = filtered();
+    const pool = randPool();
     if (!pool.length){ toast('표시 중인 문항이 없어서 뽑을 수 없어요'); return; }
     randQ = pool[Math.floor(Math.random() * pool.length)];
     randRevealed = false;
@@ -1275,10 +1325,10 @@ window.claude = (function(){
       randRevealBtn.style.display = 'none';
       return;
     }
-    const pool = filtered();
-    randScopeNote.textContent = activeSection === '전체'
-      ? `전체 ${pool.length}개 문항 중에서 무작위로 뽑았어요.`
-      : `"${activeSection}" 분류 ${pool.length}개 문항 중에서 무작위로 뽑았어요.`;
+    const pool = randPool();
+    randScopeNote.textContent = !randSel.size
+      ? `숙달 완료를 뺀 전체 ${pool.length}개 문항 중에서 무작위로 뽑았어요.`
+      : `선택한 ${randSel.size}개 분류, ${pool.length}개 문항 중에서 무작위로 뽑았어요.`;
     randBodyEl.innerHTML = `
       <div class="card-top">
         <span class="num">#${String(randQ.order).padStart(3,'0')}</span>
@@ -1295,7 +1345,7 @@ window.claude = (function(){
     randRevealBtn.textContent = randRevealed ? '모범답안 숨기기' : '모범답안 보기';
   }
 
-  randBtn.addEventListener('click', ()=>{ randOverlay.hidden = false; pickRandom(); });
+  randBtn.addEventListener('click', ()=>{ randSel = new Set(activeSection==='전체' ? [] : [activeSection]); randOverlay.hidden = false; renderRandCats(); pickRandom(); });
   randCloseBtn.addEventListener('click', ()=>{ randOverlay.hidden = true; });
   randOverlay.addEventListener('click', (e)=>{ if (e.target === randOverlay) randOverlay.hidden = true; });
   randRevealBtn.addEventListener('click', ()=>{ randRevealed = !randRevealed; renderRand(); });
@@ -1307,9 +1357,13 @@ window.claude = (function(){
         <span class="num">#${String(q.order).padStart(3,'0')}</span>
         <span class="badge">${esc(q.subject||'미분류')}</span>
         <span class="section-tag">${esc(q.section||'')}</span>
+        ${q.mastered ? `<span class="mastered-tag">✓ 숙달</span>` : ``}
         <span class="spacer"></span>
         ${canEdit ? `
           <div class="card-actions">
+            ${q.mastered
+              ? `<button class="btn small unmaster" data-act="unmaster">↩ 숙달 취소</button>`
+              : `<button class="btn small master" data-act="master">✓ 숙달 완료</button>`}
             <button class="btn small" data-act="edit">수정</button>
             <button class="btn small danger" data-act="del">삭제</button>
           </div>` : ``}
@@ -1375,6 +1429,18 @@ window.claude = (function(){
       if (editBtn) editBtn.addEventListener('click', ()=>{
         editingId = q.id; draft = {question:q.question, answer:q.answer, subject:q.subject, section:q.section};
         deleteConfirmId = null;
+        render();
+      });
+      const masterBtn = el.querySelector('[data-act="master"]');
+      if (masterBtn) masterBtn.addEventListener('click', async ()=>{
+        try{ await db.collection('questions').doc(q.id).update({ mastered: true, masteredAt: new Date().toISOString() }); toast('숙달 완료로 옮겼어요'); }
+        catch(e){ toast('저장 실패: ' + (e && e.code || '')); }
+        render();
+      });
+      const unmasterBtn = el.querySelector('[data-act="unmaster"]');
+      if (unmasterBtn) unmasterBtn.addEventListener('click', async ()=>{
+        try{ await db.collection('questions').doc(q.id).update({ mastered: false }); toast(`"${q.section||''}" 분류로 되돌렸어요`); }
+        catch(e){ toast('저장 실패: ' + (e && e.code || '')); }
         render();
       });
       const delBtn = el.querySelector('[data-act="del"]');
@@ -1636,7 +1702,7 @@ window.claude = (function(){
   addBtn.addEventListener('click', ()=>{
     if (!canEdit){ toast('편집 권한이 없는 보기 전용 화면입니다'); return; }
     editingId = 'NEW';
-    draft = {question:'', answer:'', subject:'', section: activeSection!=='전체' ? activeSection : DEFAULT_SECTIONS[0]};
+    draft = {question:'', answer:'', subject:'', section: (activeSection!=='전체' && activeSection!==MASTERED) ? activeSection : DEFAULT_SECTIONS[0]};
     deleteConfirmId = null;
     render();
     window.scrollTo({top:0, behavior:'smooth'});
