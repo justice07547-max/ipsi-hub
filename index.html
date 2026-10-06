@@ -301,6 +301,44 @@
     box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;
     z-index:50;
   }
+
+  /* ================= 전환 효과 ================= */
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes popIn{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
+  @keyframes popOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(8px) scale(.97)}}
+  @keyframes fadeOut{from{opacity:1}to{opacity:0}}
+  @keyframes revealDown{from{opacity:0;transform:translateY(-6px);clip-path:inset(0 0 100% 0)}to{opacity:1;transform:none;clip-path:inset(0 0 0 0)}}
+  @keyframes calSlideL{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+  @keyframes calSlideR{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
+  @keyframes chipPulse{0%{transform:scale(1)}40%{transform:scale(.94)}100%{transform:scale(1)}}
+  @media (prefers-reduced-motion: no-preference){
+    .chip,.tab,.btn,.stat,.cal-day,.cal-nav button{transition:background-color .2s ease,color .2s ease,border-color .2s ease,transform .15s ease,box-shadow .2s ease,filter .2s ease}
+    .chip:active,.tab:active,.btn:active,.cal-nav button:active{transform:scale(.95)}
+    .chip.just-toggled{animation:chipPulse .25s ease}
+    .tabpanel:not([hidden]){animation:fadeUp .32s cubic-bezier(.2,.7,.3,1)}
+    #r-protected:not([hidden]){animation:fadeUp .35s cubic-bezier(.2,.7,.3,1)}
+    .r-lock-card.shake{animation:shake .35s ease}
+    @keyframes shake{0%,100%{transform:none}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+    .list-in .card,.list-in .record-group,.list-in .empty{animation:fadeUp .34s cubic-bezier(.2,.7,.3,1) both;animation-delay:calc(var(--i,0) * 28ms)}
+    .modal-overlay:not([hidden]){animation:fadeIn .2s ease}
+    .modal-overlay:not([hidden]) .modal{animation:popIn .26s cubic-bezier(.2,.8,.3,1.1)}
+    .modal-overlay.closing{animation:fadeOut .18s ease forwards}
+    .modal-overlay.closing .modal{animation:popOut .18s ease forwards}
+    #rand-body.q-in{animation:fadeUp .3s cubic-bezier(.2,.7,.3,1)}
+    #rand-body.q-out{opacity:0;transform:translateY(-6px);transition:opacity .14s ease,transform .14s ease}
+    .rand-answer{animation:revealDown .32s cubic-bezier(.2,.7,.3,1)}
+    .edit-field{animation:fadeIn .22s ease}
+    .card.leaving{transition:opacity .28s ease,transform .28s ease,max-height .32s ease .1s,padding .32s ease .1s,margin .32s ease .1s,border-width .32s ease .1s;opacity:0;transform:translateX(40px) scale(.98);max-height:0!important;padding-top:0;padding-bottom:0;margin-top:-12px;border-width:0;overflow:hidden}
+    .card.leaving.to-left{transform:translateX(-40px) scale(.98)}
+    .card.arrived{animation:fadeUp .35s ease}
+    .confirm-del{animation:fadeUp .2s ease}
+    .cal-grid.slide-l{animation:calSlideL .28s ease}
+    .cal-grid.slide-r{animation:calSlideR .28s ease}
+    .agenda-list.fade{animation:fadeIn .25s ease}
+    .tl-gauge-fill,.tl-gauge-now{transition:width .9s cubic-bezier(.2,.7,.3,1),left .9s cubic-bezier(.2,.7,.3,1)}
+    .trash-item{animation:fadeUp .25s ease both}
+  }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
 
   /* ---- category add ---- */
@@ -1102,6 +1140,34 @@ window.claude = (function(){
 })();
 </script>
 <script>
+/* ================= 전환 헬퍼 ================= */
+const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function restartAnim(el, cls){ if (!el || REDUCED) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(()=>el.classList.remove(cls), 900); }
+function showModal(el){ clearTimeout(el._closeT); el.classList.remove('closing'); el.hidden = false; }
+function hideModal(el){
+  if (el.hidden) return;
+  if (REDUCED){ el.hidden = true; return; }
+  el.classList.add('closing');
+  clearTimeout(el._closeT);
+  el._closeT = setTimeout(()=>{ el.hidden = true; el.classList.remove('closing'); }, 180);
+}
+function staggerIn(container){
+  if (!container || REDUCED) return;
+  let i = 0;
+  container.querySelectorAll(':scope > .card, :scope > .record-group, :scope > .empty').forEach(c=>{ c.style.setProperty('--i', Math.min(i++, 14)); });
+  restartAnim(container, 'list-in');
+}
+function leaveCard(el, dir){
+  return new Promise(res=>{
+    if (!el || REDUCED) return res();
+    el.style.maxHeight = el.offsetHeight + 'px';
+    void el.offsetWidth;
+    el.classList.add('leaving'); if (dir === 'left') el.classList.add('to-left');
+    setTimeout(res, 380);
+  });
+}
+</script>
+<script>
 /* ================= tab switching ================= */
 (function(){
   const panels = { qna: document.getElementById('tab-qna'), record: document.getElementById('tab-record'), tracker: document.getElementById('tab-tracker') };
@@ -1111,6 +1177,16 @@ window.claude = (function(){
       panels[k].hidden = (k !== name);
       btns[k].classList.toggle('active', k === name);
     });
+    const lst = panels[name].querySelector('#list, #r-list, #cards');
+    if (lst) setTimeout(()=>staggerIn(lst), 20);
+    if (name === 'tracker' && !REDUCED){
+      panels[name].querySelectorAll('.tl-gauge-fill, .tl-gauge-now').forEach(g=>{
+        const prop = g.classList.contains('tl-gauge-now') ? 'left' : 'width';
+        const target = g.dataset.target || g.style[prop]; g.dataset.target = target;
+        g.style.transition = 'none'; g.style[prop] = '0%'; void g.offsetWidth; g.style.transition = '';
+        setTimeout(()=>{ g.style[prop] = target; }, 120);
+      });
+    }
   }
   btns.qna.addEventListener('click', ()=>showTab('qna'));
   btns.record.addEventListener('click', ()=>showTab('record'));
@@ -1262,6 +1338,8 @@ window.claude = (function(){
         else activeSet.add(c);
         editingId = null;
         render();
+        staggerIn(listEl);
+        const again = chipsEl.querySelector(`.chip[data-s="${CSS.escape(c)}"]`); restartAnim(again, 'just-toggled');
       });
     });
   }
@@ -1301,7 +1379,10 @@ window.claude = (function(){
     if (!pool.length){ toast('표시 중인 문항이 없어서 뽑을 수 없어요'); return; }
     randQ = pool[Math.floor(Math.random() * pool.length)];
     randRevealed = false;
-    renderRand();
+    if (!randOverlay.hidden && randBodyEl.innerHTML.trim() && !REDUCED){
+      randBodyEl.classList.add('q-out');
+      setTimeout(()=>{ randBodyEl.classList.remove('q-out'); renderRand(); restartAnim(randBodyEl, 'q-in'); }, 140);
+    } else { renderRand(); restartAnim(randBodyEl, 'q-in'); }
   }
 
   function renderRand(){
@@ -1321,18 +1402,18 @@ window.claude = (function(){
         <span class="section-tag">${esc(randQ.section||'')}</span>
       </div>
       <p class="qtext">Q. ${esc(randQ.question)}</p>
-      ${randRevealed ? `
+      ${randRevealed ? `<div class="rand-answer">
         <p class="atext-label">모범답안</p>
         <p class="atext">${esc(randQ.answer)}</p>
-      ` : ``}
+      </div>` : ``}
     `;
     randRevealBtn.style.display = '';
     randRevealBtn.textContent = randRevealed ? '모범답안 숨기기' : '모범답안 보기';
   }
 
-  randBtn.addEventListener('click', ()=>{ randOverlay.hidden = false; pickRandom(); });
-  randCloseBtn.addEventListener('click', ()=>{ randOverlay.hidden = true; });
-  randOverlay.addEventListener('click', (e)=>{ if (e.target === randOverlay) randOverlay.hidden = true; });
+  randBtn.addEventListener('click', ()=>{ showModal(randOverlay); pickRandom(); });
+  randCloseBtn.addEventListener('click', ()=>{ hideModal(randOverlay); });
+  randOverlay.addEventListener('click', (e)=>{ if (e.target === randOverlay) hideModal(randOverlay); });
   randRevealBtn.addEventListener('click', ()=>{ randRevealed = !randRevealed; renderRand(); });
   randAgainBtn.addEventListener('click', ()=> pickRandom());
 
@@ -1418,12 +1499,14 @@ window.claude = (function(){
       });
       const masterBtn = el.querySelector('[data-act="master"]');
       if (masterBtn) masterBtn.addEventListener('click', async ()=>{
+        await leaveCard(el, 'right');
         try{ await db.collection('questions').doc(q.id).update({ mastered: true, masteredAt: new Date().toISOString() }); toast('숙달 완료로 옮겼어요'); }
         catch(e){ toast('저장 실패: ' + (e && e.code || '')); }
         render();
       });
       const unmasterBtn = el.querySelector('[data-act="unmaster"]');
       if (unmasterBtn) unmasterBtn.addEventListener('click', async ()=>{
+        await leaveCard(el, 'left');
         try{ await db.collection('questions').doc(q.id).update({ mastered: false }); toast(`"${q.section||''}" 분류로 되돌렸어요`); }
         catch(e){ toast('저장 실패: ' + (e && e.code || '')); }
         render();
@@ -1434,6 +1517,7 @@ window.claude = (function(){
       });
       const delYes = el.querySelector('[data-act="del-yes"]');
       if (delYes) delYes.addEventListener('click', async ()=>{
+        await leaveCard(el, 'left');
         try{
           const data = {...q}; delete data.id;
           data.deletedAt = new Date().toISOString();
@@ -1546,9 +1630,9 @@ window.claude = (function(){
     renderTrash();
   }
 
-  trashBtn.addEventListener('click', ()=>{ trashOverlay.hidden = false; renderTrash(); });
-  trashCloseBtn.addEventListener('click', ()=>{ trashOverlay.hidden = true; trashDeleteConfirmId = null; });
-  trashOverlay.addEventListener('click', (e)=>{ if (e.target === trashOverlay){ trashOverlay.hidden = true; trashDeleteConfirmId = null; } });
+  trashBtn.addEventListener('click', ()=>{ showModal(trashOverlay); renderTrash(); });
+  trashCloseBtn.addEventListener('click', ()=>{ hideModal(trashOverlay); trashDeleteConfirmId = null; });
+  trashOverlay.addEventListener('click', (e)=>{ if (e.target === trashOverlay){ hideModal(trashOverlay); trashDeleteConfirmId = null; } });
 
   function catRowHtml(c){
     const count = questions.filter(q=>q.section===c.name).length;
@@ -1626,9 +1710,9 @@ window.claude = (function(){
     handle.addEventListener('pointercancel', endDrag);
   }
 
-  catManageBtn.addEventListener('click', ()=>{ catOverlay.hidden = false; renderCatMgmt(); });
-  catCloseBtn.addEventListener('click', ()=>{ catOverlay.hidden = true; });
-  catOverlay.addEventListener('click', (e)=>{ if (e.target === catOverlay) catOverlay.hidden = true; });
+  catManageBtn.addEventListener('click', ()=>{ showModal(catOverlay); renderCatMgmt(); });
+  catCloseBtn.addEventListener('click', ()=>{ hideModal(catOverlay); });
+  catOverlay.addEventListener('click', (e)=>{ if (e.target === catOverlay) hideModal(catOverlay); });
 
   catMgmtAddBtn.addEventListener('click', async ()=>{
     if (!canEdit){ toast('편집 권한이 없습니다'); return; }
@@ -2063,12 +2147,14 @@ window.claude = (function(){
     if (String(pw||'') === String(recordPassword||'1110')){
       unlocked = true;
       lockEl.hidden = true;
+      setTimeout(()=>staggerIn(listEl), 30);
       protectedEl.hidden = false;
       lockErrorEl.textContent = '';
       lockInput.value = '';
       pwChangeRow.hidden = !canEdit;
     } else {
       lockErrorEl.textContent = '비밀번호가 올바르지 않습니다';
+      restartAnim(lockEl.querySelector('.r-lock-card'), 'shake');
       lockInput.value = '';
       lockInput.focus();
     }
@@ -2079,10 +2165,10 @@ window.claude = (function(){
   pwChangeBtn.addEventListener('click', ()=>{
     if (!canEdit){ toast('편집 권한이 없습니다'); return; }
     pwInput.value = '';
-    pwOverlay.hidden = false;
+    showModal(pwOverlay);
     pwInput.focus();
   });
-  function closePwOverlay(){ pwOverlay.hidden = true; pwInput.value = ''; }
+  function closePwOverlay(){ hideModal(pwOverlay); pwInput.value = ''; }
   pwCloseBtn.addEventListener('click', closePwOverlay);
   pwCancelBtn.addEventListener('click', closePwOverlay);
   pwOverlay.addEventListener('click', (e)=>{ if (e.target === pwOverlay) closePwOverlay(); });
@@ -2110,6 +2196,7 @@ window.claude = (function(){
         activeSection = el.dataset.s;
         editingId = null;
         render();
+        staggerIn(listEl);
       });
     });
   }
@@ -2209,6 +2296,7 @@ window.claude = (function(){
       });
       const delYes = el.querySelector('[data-act="del-yes"]');
       if (delYes) delYes.addEventListener('click', async ()=>{
+        await leaveCard(el, 'left');
         try{
           const data = {...q}; delete data.id;
           data.deletedAt = new Date().toISOString();
@@ -2320,9 +2408,9 @@ window.claude = (function(){
     renderTrash();
   }
 
-  trashBtn.addEventListener('click', ()=>{ trashOverlay.hidden = false; renderTrash(); });
-  trashCloseBtn.addEventListener('click', ()=>{ trashOverlay.hidden = true; trashDeleteConfirmId = null; });
-  trashOverlay.addEventListener('click', (e)=>{ if (e.target === trashOverlay){ trashOverlay.hidden = true; trashDeleteConfirmId = null; } });
+  trashBtn.addEventListener('click', ()=>{ showModal(trashOverlay); renderTrash(); });
+  trashCloseBtn.addEventListener('click', ()=>{ hideModal(trashOverlay); trashDeleteConfirmId = null; });
+  trashOverlay.addEventListener('click', (e)=>{ if (e.target === trashOverlay){ hideModal(trashOverlay); trashDeleteConfirmId = null; } });
 
   function catRowHtml(c){
     const count = records.filter(q=>q.section===c.name).length;
@@ -2398,9 +2486,9 @@ window.claude = (function(){
     handle.addEventListener('pointercancel', endDrag);
   }
 
-  catManageBtn.addEventListener('click', ()=>{ catOverlay.hidden = false; renderCatMgmt(); });
-  catCloseBtn.addEventListener('click', ()=>{ catOverlay.hidden = true; });
-  catOverlay.addEventListener('click', (e)=>{ if (e.target === catOverlay) catOverlay.hidden = true; });
+  catManageBtn.addEventListener('click', ()=>{ showModal(catOverlay); renderCatMgmt(); });
+  catCloseBtn.addEventListener('click', ()=>{ hideModal(catOverlay); });
+  catOverlay.addEventListener('click', (e)=>{ if (e.target === catOverlay) hideModal(catOverlay); });
 
   catMgmtAddBtn.addEventListener('click', async ()=>{
     if (!canEdit){ toast('편집 권한이 없습니다'); return; }
@@ -2814,6 +2902,7 @@ window.claude = (function(){
       agendaList.innerHTML = `<div class="agenda-empty">일정이 없습니다.</div>`;
       return;
     }
+    restartAnim(agendaList, 'fade');
     agendaList.innerHTML = list.map(ev=>{
       const {y,m,day} = kstParts(ev.date);
       const wd = DOW[new Date(y, m-1, day).getDay()];
@@ -2870,12 +2959,12 @@ window.claude = (function(){
   prevBtn.addEventListener('click', ()=>{
     viewMonth--; if(viewMonth < 1){ viewMonth = 12; viewYear--; }
     selectedKey = null;
-    renderCalendar();
+    renderCalendar(); restartAnim(calGrid, 'slide-r');
   });
   nextBtn.addEventListener('click', ()=>{
     viewMonth++; if(viewMonth > 12){ viewMonth = 1; viewYear++; }
     selectedKey = null;
-    renderCalendar();
+    renderCalendar(); restartAnim(calGrid, 'slide-l');
   });
   todayBtn.addEventListener('click', ()=>{
     const t = kstParts(now);
