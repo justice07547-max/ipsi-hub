@@ -246,16 +246,16 @@
   }
   .grade-pill b{color:var(--sky);font-weight:800}
 
-  .r-lock{display:flex;align-items:center;justify-content:center;padding:40px 16px}
+  .r-lock{display:flex;align-items:center;justify-content:center;padding:18px 10px 26px}
   .r-lock-card{
-    max-width:360px;width:100%;text-align:center;
+    max-width:340px;width:100%;text-align:center;
     background:var(--glass);border:1px solid var(--glass-border);
-    border-radius:18px;padding:30px 24px;box-shadow:var(--shadow), inset 0 1px 0 var(--glass-hi);
+    border-radius:16px;padding:24px 20px;box-shadow:inset 0 1px 0 var(--glass-hi);
     backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);
   }
-  .r-lock-icon{font-size:30px;margin-bottom:10px}
-  .r-lock-title{font-size:16px;font-weight:800;margin:0 0 6px}
-  .r-lock-sub{font-size:12.5px;color:var(--muted);line-height:1.6;margin:0 0 18px}
+  .r-lock-icon{font-size:26px;margin-bottom:8px}
+  .r-lock-title{font-size:14.5px;font-weight:800;margin:0 0 6px}
+  .r-lock-sub{font-size:12.5px;color:var(--muted);line-height:1.6;margin:0 0 16px}
   .r-lock input[type=password]{
     width:100%;box-sizing:border-box;border:1px solid var(--glass-border);background:var(--input-bg);
     color:var(--ink);border-radius:11px;padding:11px 14px;font-size:15px;letter-spacing:.08em;
@@ -264,7 +264,7 @@
   .r-lock input[type=password]:focus{outline:2px solid var(--accent);outline-offset:1px}
   .r-lock .btn{width:100%}
   .r-lock-error{font-size:12px;color:#b1483f;font-weight:700;margin:8px 0 0;min-height:14px}
-  .r-pw-change{margin-top:10px;text-align:right}
+  .r-pw-change{margin-top:10px;text-align:right;display:flex;gap:14px;justify-content:flex-end}
   .r-pw-change button{
     font-size:11.5px;font-weight:700;color:var(--accent);background:none;border:none;
     cursor:pointer;text-decoration:underline;padding:0;font-family:inherit;
@@ -317,7 +317,6 @@
     .chip:active,.tab:active,.btn:active,.cal-nav button:active{transform:scale(.95)}
     .chip.just-toggled{animation:chipPulse .25s ease}
     .tabpanel:not([hidden]){animation:fadeUp .32s cubic-bezier(.2,.7,.3,1)}
-    #r-protected:not([hidden]){animation:fadeUp .35s cubic-bezier(.2,.7,.3,1)}
     .r-lock-card.shake{animation:shake .35s ease}
     @keyframes shake{0%,100%{transform:none}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
     .list-in .card,.list-in .record-group,.list-in .empty{animation:fadeUp .34s cubic-bezier(.2,.7,.3,1) both;animation-delay:calc(var(--i,0) * 28ms)}
@@ -730,22 +729,11 @@
   </section>
 
   <section id="tab-record" class="tabpanel" hidden>
-    <div class="r-lock" id="r-lock">
-      <div class="r-lock-card">
-        <div class="r-lock-icon">🔒</div>
-        <p class="r-lock-title">내 생기부는 비공개입니다</p>
-        <p class="r-lock-sub">개인정보가 담겨 있어 비밀번호를 입력해야 열람할 수 있어요.</p>
-        <input type="password" id="r-lock-input" placeholder="비밀번호" autocomplete="off" inputmode="numeric">
-        <button type="button" class="btn primary" id="r-lock-btn">열기</button>
-        <p class="r-lock-error" id="r-lock-error"></p>
-      </div>
-    </div>
-
-    <div id="r-protected" hidden>
+    <div>
       <header class="hero">
         <div class="eyebrow">daesin high · 생활기록부</div>
         <h1>내 생기부</h1>
-        <p class="sub">1~3학년 학교생활기록부 원문을 분류별로 정리해 두는 공간입니다. 카드를 눌러 내용·과목·학년·분류를 직접 고쳐 쓸 수 있어요. 수정 내용은 자동으로 저장됩니다.</p>
+        <p class="sub">1~3학년 학교생활기록부 원문을 분류별로 정리해 두는 공간입니다. 카드를 눌러 내용·과목·학년·분류를 직접 고쳐 쓸 수 있어요. 성적 분류는 비밀번호를 입력해야 열람할 수 있습니다.</p>
         <div class="stats">
           <div class="stat"><b id="rstat-total">–</b>전체 항목</div>
           <div class="stat"><b id="rstat-shown">–</b>표시 중</div>
@@ -764,7 +752,8 @@
           <button class="btn small ghost" id="r-cat-manage-btn">⠿ 카테고리 관리</button>
         </div>
         <div class="r-pw-change" id="r-pw-change-row" hidden>
-          <button type="button" id="r-pw-change-btn">🔒 비밀번호 변경</button>
+          <button type="button" id="r-pw-lock-btn">🔒 성적 다시 잠그기</button>
+          <button type="button" id="r-pw-change-btn">비밀번호 변경</button>
         </div>
       </div>
 
@@ -884,7 +873,7 @@
       <h3>비밀번호 변경</h3>
       <button class="btn small ghost" id="r-pwchange-close-btn">닫기</button>
     </div>
-    <p class="modal-sub">내 생기부 탭을 열람할 때 사용할 새 비밀번호를 입력하세요 (4자 이상).</p>
+    <p class="modal-sub">성적 분류를 열람할 때 사용할 새 비밀번호를 입력하세요 (4자 이상).</p>
     <input type="password" id="r-pwchange-input" placeholder="새 비밀번호" autocomplete="off">
     <div class="card-actions" style="justify-content:flex-end;margin-top:10px">
       <button class="btn ghost small" id="r-pwchange-cancel-btn">취소</button>
@@ -2032,12 +2021,8 @@ function leaveCard(el, dir){
   const catMgmtInput = document.getElementById('r-cat-mgmt-input');
   const catMgmtAddBtn = document.getElementById('r-cat-mgmt-add-btn');
 
-  const lockEl = document.getElementById('r-lock');
-  const lockInput = document.getElementById('r-lock-input');
-  const lockBtn = document.getElementById('r-lock-btn');
-  const lockErrorEl = document.getElementById('r-lock-error');
-  const protectedEl = document.getElementById('r-protected');
   const pwChangeRow = document.getElementById('r-pw-change-row');
+  const pwLockBtn = document.getElementById('r-pw-lock-btn');
   const pwChangeBtn = document.getElementById('r-pw-change-btn');
   const pwOverlay = document.getElementById('r-pwchange-overlay');
   const pwCloseBtn = document.getElementById('r-pwchange-close-btn');
@@ -2053,7 +2038,8 @@ function leaveCard(el, dir){
   let trashItems = [];       // live from db 'recordTrash' collection
   let recordPassword = '1110'; // live from db 'recordAuth' collection, doc 'config' — default until loaded/set
   let authSeeding = false;
-  let unlocked = false;
+  let gradeUnlocked = false;
+  let lockError = '';
   let activeSection = '전체';
   let searchTerm = '';
   let editingId = null;      // doc id currently in edit mode, or 'NEW'
@@ -2142,25 +2128,38 @@ function leaveCard(el, dir){
     authSeeding = false;
   }
 
-  function tryUnlock(){
-    const pw = lockInput.value;
-    if (String(pw||'') === String(recordPassword||'1110')){
-      unlocked = true;
-      lockEl.hidden = true;
+  const PROTECTED_SECTION_ID = 'rc13';
+  const PROTECTED_SECTION_FALLBACK = '성적';
+  function protectedSection(){
+    const cat = categories.find(c => c.id === PROTECTED_SECTION_ID);
+    return (cat && cat.name) || PROTECTED_SECTION_FALLBACK;
+  }
+  function isLockedSection(name){
+    return name === protectedSection() && !gradeUnlocked;
+  }
+
+  function tryUnlock(value){
+    const ok = String(value||'') === String(recordPassword||'1110');
+    if (ok){ gradeUnlocked = true; lockError = ''; }
+    else { lockError = '비밀번호가 올바르지 않습니다'; }
+    render();
+    if (ok){
       setTimeout(()=>staggerIn(listEl), 30);
-      protectedEl.hidden = false;
-      lockErrorEl.textContent = '';
-      lockInput.value = '';
-      pwChangeRow.hidden = !canEdit;
     } else {
-      lockErrorEl.textContent = '비밀번호가 올바르지 않습니다';
-      restartAnim(lockEl.querySelector('.r-lock-card'), 'shake');
-      lockInput.value = '';
-      lockInput.focus();
+      const card = listEl.querySelector('.r-lock-card');
+      if (card) restartAnim(card, 'shake');
+      const input = listEl.querySelector('#r-lock-input');
+      if (input) input.focus();
     }
   }
-  lockBtn.addEventListener('click', tryUnlock);
-  lockInput.addEventListener('keydown', e=>{ if (e.key === 'Enter') tryUnlock(); });
+  function lockAgain(){
+    gradeUnlocked = false;
+    lockError = '';
+    pwChangeRow.hidden = true;
+    render();
+    toast('성적을 다시 잠갔습니다');
+  }
+  pwLockBtn.addEventListener('click', lockAgain);
 
   pwChangeBtn.addEventListener('click', ()=>{
     if (!canEdit){ toast('편집 권한이 없습니다'); return; }
@@ -2206,11 +2205,27 @@ function leaveCard(el, dir){
     if (activeSection !== '전체') list = list.filter(q => q.section === activeSection);
     const t = searchTerm.trim().toLowerCase();
     if (t) list = list.filter(q =>
-      (q.content||'').toLowerCase().includes(t) ||
-      (q.subject||'').toLowerCase().includes(t) ||
+      (!isLockedSection(q.section) && (
+        (q.content||'').toLowerCase().includes(t) ||
+        (q.subject||'').toLowerCase().includes(t)
+      )) ||
       (q.section||'').toLowerCase().includes(t)
     );
     return list;
+  }
+
+  function lockPanelHtml(count){
+    return `
+      <div class="r-lock">
+        <div class="r-lock-card">
+          <div class="r-lock-icon">🔒</div>
+          <p class="r-lock-title">성적은 비공개입니다</p>
+          <p class="r-lock-sub">성적 ${count}개 항목이 있어요. 비밀번호를 입력하면 볼 수 있어요.</p>
+          <input type="password" id="r-lock-input" placeholder="비밀번호" autocomplete="off" inputmode="numeric">
+          <button type="button" class="btn primary" id="r-lock-btn">열기</button>
+          <p class="r-lock-error">${esc(lockError)}</p>
+        </div>
+      </div>`;
   }
 
   function cardViewHtml(q){
@@ -2358,7 +2373,7 @@ function leaveCard(el, dir){
     const sorted = trashItems.slice().sort((a,b)=> String(b.deletedAt||'').localeCompare(String(a.deletedAt||'')));
     trashListEl.innerHTML = sorted.map(q => `
       <div class="trash-item" data-id="${esc(q.id)}">
-        <p class="tq">${esc((q.content||'').slice(0,60))}${(q.content||'').length>60?'…':''}</p>
+        <p class="tq">${isLockedSection(q.section) ? '🔒 잠긴 분류의 항목입니다' : esc((q.content||'').slice(0,60)) + ((q.content||'').length>60?'…':'')}</p>
         <div class="tmeta">${esc(q.section||'')} · ${esc(gradeLabel(q.grade))} · ${esc(q.subject||'')}</div>
         ${trashDeleteConfirmId===q.id ? `
           <div class="confirm-del">
@@ -2537,7 +2552,8 @@ function leaveCard(el, dir){
       html += keyOrder.map(key=>{
         const items = groups.get(key);
         const c = catColor(key);
-        const cardsHtml = items.map(q => {
+        const locked = isLockedSection(key);
+        const cardsHtml = locked ? lockPanelHtml(items.length) : items.map(q => {
           const isEditing = canEdit && editingId === q.id;
           return `<div class="card" data-id="${esc(q.id)}">${isEditing ? cardEditHtml(q,false) : cardViewHtml(q)}</div>`;
         }).join('');
@@ -2546,7 +2562,7 @@ function leaveCard(el, dir){
             <div class="record-group-head">
               <span class="record-group-dot" style="background:${c}"></span>
               <span class="record-group-name" style="color:${c}">${esc(key)}</span>
-              <span class="record-group-count">${items.length}개</span>
+              <span class="record-group-count">${locked ? '🔒 잠김' : items.length + '개'}</span>
             </div>
             <div class="record-group-body">${cardsHtml}</div>
           </div>
@@ -2565,6 +2581,13 @@ function leaveCard(el, dir){
       const q = records.find(x=>x.id===id);
       if (q) attachCardEvents(el, q, false);
     });
+
+    const lockInputEl = listEl.querySelector('#r-lock-input');
+    const lockBtnEl = listEl.querySelector('#r-lock-btn');
+    if (lockBtnEl) lockBtnEl.addEventListener('click', ()=> tryUnlock(lockInputEl ? lockInputEl.value : ''));
+    if (lockInputEl) lockInputEl.addEventListener('keydown', e=>{ if (e.key === 'Enter') tryUnlock(lockInputEl.value); });
+
+    pwChangeRow.hidden = !(gradeUnlocked && canEdit);
   }
 
   searchEl.addEventListener('input', ()=>{ searchTerm = searchEl.value; render(); });
